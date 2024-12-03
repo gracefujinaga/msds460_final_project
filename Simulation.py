@@ -1,10 +1,5 @@
 '''
 Dr. Miller's Coffee Shop Simulation Code used for more info
-
-Need to adjust and make more tweaks
-- need to add reneging from the second process
-- check removing/adding from the queue
-- correctly update tracking metrics on wait time, service time, etc.
 '''
 
 '''
@@ -176,9 +171,7 @@ def renege(id, queue) :
     activity = f"renege_queue_{id}"
     env.process(event_log_append(env, caseid, env.now, activity, event_log)) 
 
-'''
-Starting function for the simulation
-'''
+# Starting function for the simulation
 def initial_call(env, caseid, caseid_queue_1, caseid_queue_2, event_log):
     global total_wait_time, total_calls, total_reneged_calls, total_escalated_calls
 
@@ -269,10 +262,7 @@ def event_log_append(env, caseid, time, activity, event_log):
 
 
 '''
----------------------------------------
-set up the SimPy simulation environment
-and run the simulation with monitoring
----------------------------------------
+run the simulation with monitoring
 '''
 if obtain_reproducible_results: 
     np.random.seed(9999)
@@ -310,22 +300,8 @@ env.process(initial_call(env, caseid, caseid_queue_1, caseid_queue_2, event_log)
 env.run(until = fixed_simulation_time) 
 
 '''
------------------------------------------------------------------
-report simulation program results to data frame and files
-
-the SimPy simulation trace file provides a trace of events 
-that is saved to a text file in the form
-  (simulation time, index number of event, <class 'type of event'>)
-this can be useful in debugging simulation program logic
-
-the event_log list of tuples is saved to a text file of the form
-  (caseid, time, 'activity')
-the event_log list of tuples is also unpacked and saved as a
-pandas data frame and saved to a comma-delimited text file 
-
------------------------------------------------------------------
+logging and trace files
 '''
-
 # write trace to trace file
 with open(simulation_trace_file_name, 'wt') as ftrace:
     for d in data:
@@ -351,7 +327,9 @@ event_log_df.to_csv(event_log_file_name, index = False)
 print('\n event log written to file:',event_log_file_name)
 
 
-#Results
+'''
+metrics and figures
+'''
 average_wait_time = total_wait_time / (total_calls * 60) if total_calls > 0 else 0
 renege_rate = total_reneged_calls / (total_calls * 60) if total_calls > 0 else 0
 
