@@ -14,6 +14,7 @@ import random
 import matplotlib.pyplot as plt
 import os
 
+
 '''
 Problem Set Up, Global Vars
 '''
@@ -56,6 +57,10 @@ reneg_queue_length_2 = 3
 # true if uniform, false if normal distribution
 distribution_flag = False
 
+
+## NOTES:
+# total service time and total wait time is kept in seconds
+# wait times list and service times lists are kept in minutes
 ####################################################
 
 # reproducible flag
