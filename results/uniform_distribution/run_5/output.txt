@@ -1,0 +1,28 @@
+## set up for queue 1
+
+-- only 5 min added to max service time
+
+num_sp = 6 # number of call center service providers
+min_service_time_1 = 2 # minutes (60 seconds)
+mean_service_time_1 = 5 # minutes (120 seconds)
+max_service_time_1 = 30 # minutes (300 seconds)
+reneg_queue_length_1 = 10
+
+## set up for queue 2
+num_managers = 3
+min_service_time_2 = 10 # minutes  - this is in ADDITION to previous service time, not total
+mean_service_time_2 = 20 
+max_service_time_2 = 50
+reneg_queue_length_2 = 3
+
+
+# true if uniform, false if normal distribution
+distribution_flag = True
+
+output:
+Simulation Results:
+Total Calls: 350
+Average Wait Time: 14.22 minutes
+Renege Rate: 0.53%
+Total Reneged Calls: 111
+Total Escalated Calls: 43

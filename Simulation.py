@@ -1,24 +1,18 @@
 '''
-Dr. Miller's Coffee Shop Simulation Code used for more info
-'''
-
-'''
 Imports
 '''
+import numpy as np 
+import pandas as pd 
 
-import numpy as np # for random number distributions
-import pandas as pd # for event_log data frame
-
-pd.set_option('display.max_rows', 20)
-pd.set_option('display.max_columns', 10)
-
-import queue # add FIFO queue data structure
-from collections import deque
+#queue sucture that allows for reneging -- note: this works because in this case, the caller reneges right 
+# when they enter the queue, if the logic were different in the simulation, then we would need to use a list
+from collections import deque 
 from functools import partial, wraps
 import simpy # discrete event simulation environment
 import random
 
 import matplotlib.pyplot as plt
+import os
 
 '''
 Problem Set Up, Global Vars
@@ -39,19 +33,30 @@ wait_times = []
 escalated_service_times = []
 escalated_wait_times = []
 
+
+####################################################
+# PARAMS THAT ARE MANIPULATED
+####################################################
 ## set up for queue 1
-num_sp = 6  # number of call center service providers
-min_service_time_1 = 2 # minutes (60 seconds)
-mean_service_time_1 = 5 # minutes (120 seconds)
-max_service_time_1 = 25 # minutes (300 seconds)
+num_sp = 10 # number of call center service providers
+min_service_time_1 = 2 # minutes 
+mean_service_time_1 = 5 + 5 # minutes 
+std_dev_service_time_1 = 1
+max_service_time_1 = 30 # minutes 
 reneg_queue_length_1 = 10
 
 ## set up for queue 2
-num_managers = 2
+num_managers = 1
 min_service_time_2 = 10 # minutes  - this is in ADDITION to previous service time, not total
-mean_service_time_2 = 20 
-max_service_time_2 = 45 
+mean_service_time_2 = 20 + 5
+std_dev_service_time_2 = 10
+max_service_time_2 = 50
 reneg_queue_length_2 = 3
+
+# true if uniform, false if normal distribution
+distribution_flag = False
+
+####################################################
 
 # reproducible flag
 obtain_reproducible_results = True
@@ -63,8 +68,11 @@ fixed_simulation_time =  simulation_hours*60*60
 parameter_string_list = [str(simulation_hours),'hours', str(num_sp), str(num_managers)]
 separator = '-'        
 simulation_file_identifier = separator.join(parameter_string_list)
-simulation_trace_file_name = '/Users/gracefujinaga/Documents/Northwestern/MSDS_460/msds460_final_project/results/simulation-program-trace-' + simulation_file_identifier + '.txt'
-event_log_file_name = '/Users/gracefujinaga/Documents/Northwestern/MSDS_460/msds460_final_project/results/simulation-event-log-' + simulation_file_identifier + '.csv'
+run = 'run_5'
+simulation_trace_file_name = f'/Users/gracefujinaga/Documents/Northwestern/MSDS_460/msds460_final_project/results/normal_distribution/{run}/simulation-program-trace-' + simulation_file_identifier + '.txt'
+event_log_file_name = f'/Users/gracefujinaga/Documents/Northwestern/MSDS_460/msds460_final_project/results/normal_distribution/{run}/simulation-event-log-' + simulation_file_identifier + '.csv'
+base_result_path = f'/Users/gracefujinaga/Documents/Northwestern/MSDS_460/msds460_final_project/results/normal_distribution/{run}/'
+
 
 '''
 Set up helper functions for queue 1
@@ -98,7 +106,14 @@ def call_process_1(env, caseid_queue, event_log):
         env.process(event_log_append(env, caseid, env.now, 'begin_service', event_log)) 
 
         # schedule end_service event based on normally distributed service_time
-        service_time = round(60*random.uniform(min_service_time_1, max_service_time_1))  
+        if distribution_flag:
+            service_time = round(60*random.uniform(min_service_time_1, max_service_time_1))  
+        else:
+            service_time = round(60*np.random.normal(mean_service_time_1, std_dev_service_time_1)) 
+
+            if service_time < 0:
+                service_time = 0
+        print(service_time)
 
         yield env.timeout(service_time)  
 
@@ -143,7 +158,16 @@ def call_process_2(env, caseid_queue, event_log):
         env.process(event_log_append(env, caseid, env.now, 'begin_escalated_service', event_log))
 
         # schedule end_service event based on normally distributed service_time
-        service_time = round(60*random.uniform(min_service_time_2, max_service_time_2))  
+        if distribution_flag:
+            service_time = round(60*random.uniform(min_service_time_2, max_service_time_2))  
+        else:
+            service_time = round(60*np.random.normal(mean_service_time_2, std_dev_service_time_2)) 
+
+            if service_time < 0:
+                service_time = 0
+
+            print(service_time)
+            
         yield env.timeout(service_time)  
 
         # update metrics
@@ -331,22 +355,29 @@ print('\n event log written to file:',event_log_file_name)
 metrics and figures
 '''
 average_wait_time = total_wait_time / (total_calls * 60) if total_calls > 0 else 0
+average_service_time = total_service_time/(total_calls * 60) if total_calls > 0 else 0
 renege_rate = total_reneged_calls / (total_calls * 60) if total_calls > 0 else 0
 
 print("\nSimulation Results:")
 print(f"Total Calls: {total_calls}")
 print(f"Average Wait Time: {average_wait_time:.2f} minutes")
+print(f"Average Service Time: {average_service_time:.2f} minutes")
 print(f"Renege Rate: {renege_rate:.2%}")
 print(f"Total Reneged Calls: {total_reneged_calls}")
 print(f"Total Escalated Calls: {total_escalated_calls}")
 
-#Visualization
+# create and check base path exists
+base_path = base_result_path
+os.makedirs(base_path, exist_ok=True)
+
+# Visualization: Distribution of Initial Wait Times
 plt.figure(figsize=(10, 6))
 plt.hist(wait_times, color='skyblue', edgecolor='black', alpha=0.7)
 plt.title("Distribution of Initial Wait Times")
 plt.xlabel("Wait Time (minutes)")
 plt.ylabel("Frequency")
-plt.show()
+plt.savefig(os.path.join(base_path, 'initial_wait_times.png')) 
+#plt.show()
 
 # Service Time Distribution
 plt.figure(figsize=(10, 6))
@@ -354,32 +385,33 @@ plt.hist(service_times, color='green', edgecolor='black', alpha=0.7)
 plt.title("Distribution of Initial Service Times")
 plt.xlabel("Service Time (minutes)")
 plt.ylabel("Frequency")
-plt.show()
+plt.savefig(os.path.join(base_path, 'initial_service_times.png')) 
+#plt.show()
 
-#Wait Time Distribution
+# Escalated Wait Time Distribution
 plt.figure(figsize=(10, 6))
 plt.hist(escalated_wait_times, color='skyblue', edgecolor='black', alpha=0.7)
 plt.title("Distribution of Escalated Wait Times")
 plt.xlabel("Wait Time (minutes)")
 plt.ylabel("Frequency")
-plt.show()
+plt.savefig(os.path.join(base_path, 'escalated_wait_times.png')) 
+#plt.show()
 
-# Service Time Distribution
+# Escalated Service Time Distribution
 plt.figure(figsize=(10, 6))
 plt.hist(escalated_service_times, color='green', edgecolor='black', alpha=0.7)
 plt.title("Distribution of Escalated Service Times")
 plt.xlabel("Service Time (minutes)")
 plt.ylabel("Frequency")
-plt.show()
+plt.savefig(os.path.join(base_path, 'escalated_service_times.png'))  
+#plt.show()
 
-
-# call statistics
-#Call Outcomes
+# Call Outcomes: Pie Chart
 labels = ['resolved', 'reneged']
-print(total_calls - total_reneged_calls)
 sizes = [total_calls - total_reneged_calls, total_reneged_calls]
 
 plt.figure(figsize=(8, 8))
 plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=['lightgreen', 'lightcoral'])
 plt.title("Call Outcomes")
-plt.show()
+plt.savefig(os.path.join(base_path, 'call_outcomes.png'))  
+#plt.show()
