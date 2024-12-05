@@ -1,22 +1,17 @@
-'''
-Imports
-'''
 import numpy as np 
 import pandas as pd 
-
-#queue sucture that allows for reneging -- note: this works because in this case, the caller reneges right 
-# when they enter the queue, if the logic were different in the simulation, then we would need to use a list
 from collections import deque 
 from functools import partial, wraps
-import simpy # discrete event simulation environment
+import simpy 
 import random
-
 import matplotlib.pyplot as plt
 import os
 
 
 '''
-Problem Set Up, Global Vars
+---------------------------------------------------------
+Global Vars
+---------------------------------------------------------
 '''
 # problem set up 
 SIM_TIME = 100
@@ -34,10 +29,11 @@ wait_times = []
 escalated_service_times = []
 escalated_wait_times = []
 
-
-####################################################
-# PARAMS THAT ARE MANIPULATED
-####################################################
+'''
+---------------------------------------------------------
+Parameters
+---------------------------------------------------------
+'''
 ## set up for queue 1
 num_sp = 10 # number of call center service providers
 min_service_time_1 = 2 # minutes 
@@ -57,18 +53,18 @@ reneg_queue_length_2 = 3
 # true if uniform, false if normal distribution
 distribution_flag = False
 
-
-## NOTES:
-# total service time and total wait time is kept in seconds
-# wait times list and service times lists are kept in minutes
-####################################################
-
 # reproducible flag
 obtain_reproducible_results = True
 
 # time setup
 simulation_hours = 10
 fixed_simulation_time =  simulation_hours*60*60   
+
+'''
+---------------------------------------------------------
+Set up Output Paths
+---------------------------------------------------------
+'''
 
 parameter_string_list = [str(simulation_hours),'hours', str(num_sp), str(num_managers)]
 separator = '-'        
@@ -80,7 +76,9 @@ base_result_path = f'/Users/gracefujinaga/Documents/Northwestern/MSDS_460/msds46
 
 
 '''
-Set up helper functions for queue 1
+---------------------------------------------------------
+Simulation Helper Functions
+---------------------------------------------------------
 '''
 def call_process_1(env, caseid_queue, event_log):
     global total_wait_time, total_calls, total_service_time, service_times, wait_times
@@ -131,9 +129,6 @@ def call_process_1(env, caseid_queue, event_log):
         print("End_service caseid =",caseid,'time = ',env.now,'curr_queue_length =',queue_len_on_leaving_service)
         env.process(event_log_append(env, caseid, env.now, 'end_service', event_log))
 
-'''
-Helpers for part 2 of the queue
-'''
 def call_process_2(env, caseid_queue, event_log):
     global total_wait_time, total_calls, total_service_time, escalated_service_times, escalated_wait_times
 
@@ -190,7 +185,7 @@ def renege(id, queue) :
     total_reneged_calls += 1
 
     # removes most recently added - this is a safe assumption
-    caseid = queue.popleft()
+    caseid = queue.pop()
     if id == 2:
         print_string = "Customer renege frome escalated service caseid="
     else : 
@@ -200,7 +195,6 @@ def renege(id, queue) :
     activity = f"renege_queue_{id}"
     env.process(event_log_append(env, caseid, env.now, activity, event_log)) 
 
-# Starting function for the simulation
 def initial_call(env, caseid, caseid_queue_1, caseid_queue_2, event_log):
     global total_wait_time, total_calls, total_reneged_calls, total_escalated_calls
 
@@ -248,6 +242,7 @@ that is, all timeout and process events that begin with "env."
 documentation at:
   https://simpy.readthedocs.io/en/latest/topical_guides/monitoring.html#event-tracing
   https://docs.python.org/3/library/functools.html#functools.partial
+---------------------------------------------------------
 '''
 def trace(env, callback):
      """Replace the ``step()`` method of *env* with a tracing function
@@ -284,14 +279,16 @@ as defined for the discrete event simulation
 we use a list of tuples for the event log
 documentation at:
   https://simpy.readthedocs.io/en/latest/topical_guides/monitoring.html#event-tracing
+---------------------------------------------------------
 '''     
 def event_log_append(env, caseid, time, activity, event_log):
     event_log.append((caseid, time, activity))
     yield env.timeout(0)
 
-
 '''
+---------------------------------------------------------
 run the simulation with monitoring
+---------------------------------------------------------
 '''
 if obtain_reproducible_results: 
     np.random.seed(9999)
@@ -318,7 +315,6 @@ available_managers = simpy.Resource(env, capacity = num_managers)
 caseid = -1  
 
 # beginning record in event_log list of tuples of the form
-# form of the event_log tuple item: (caseid, time, activity)
 event_log = [(caseid,0,'null_start_simulation')]
 
 # log events start the simulation
@@ -329,7 +325,9 @@ env.process(initial_call(env, caseid, caseid_queue_1, caseid_queue_2, event_log)
 env.run(until = fixed_simulation_time) 
 
 '''
+---------------------------------------------------------
 logging and trace files
+---------------------------------------------------------
 '''
 # write trace to trace file
 with open(simulation_trace_file_name, 'wt') as ftrace:
@@ -357,8 +355,12 @@ print('\n event log written to file:',event_log_file_name)
 
 
 '''
+---------------------------------------------------------
 metrics and figures
+---------------------------------------------------------
 '''
+# total service time and total wait time is kept in seconds
+# wait times list and service times lists are kept in minutes
 average_wait_time = total_wait_time / (total_calls * 60) if total_calls > 0 else 0
 average_service_time = total_service_time/(total_calls * 60) if total_calls > 0 else 0
 renege_rate = total_reneged_calls / (total_calls * 60) if total_calls > 0 else 0
