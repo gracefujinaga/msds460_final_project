@@ -1,6 +1,9 @@
 # msds460_final_project
 MSDS 460 Final Project
 
+# Repo Organization
+The first iteration of the simulation is in MSDS460Final.py. The code used to get results is in Simulation.py. The results for the different runs are in the results folder. There are two types of distributions of wait times and 5 runs for each. Inside each run folder there are figures, output.txt with the terminal output and initial setup for the simulation. The log files are also in each run. 
+
 # Different Runs
 run 1: 6 sp, 1 manager
 
