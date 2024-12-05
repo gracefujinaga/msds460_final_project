@@ -54,7 +54,7 @@ reneg_queue_length_2 = 3
 distribution_flag = False
 
 # reproducible flag
-obtain_reproducible_results = True
+obtain_reproducible_results = False
 
 # time setup
 simulation_hours = 10
